@@ -2,84 +2,175 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Editor Pro - Auto Detect</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTMLEDITOR Expert</title>
     <style>
-        body { margin: 0; display: flex; flex-direction: column; height: 100vh; background: #1e1e1e; font-family: sans-serif; color: white; }
-        .toolbar { background: #2d2d2d; padding: 10px; display: flex; gap: 10px; align-items: center; border-bottom: 2px solid #444; }
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            background: #1e1e1e; 
+            color: white; 
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            overflow: hidden;
+        }
+
+        /* Barra de herramientas */
+        .toolbar { 
+            background: #2d2d2d; 
+            padding: 10px 15px; 
+            display: flex; 
+            gap: 10px; 
+            align-items: center; 
+            border-bottom: 2px solid #444; 
+        }
+
+        button { 
+            padding: 8px 15px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            transition: 0.2s;
+        }
+
+        .btn-blue { background: #007acc; color: white; }
+        .btn-blue:hover { background: #005f9e; }
+        .btn-red { background: #cc3300; color: white; }
+        .btn-red:hover { background: #a32900; }
         
-        /* Estilo del botón de descarga especial */
         #btn-download-app { 
             background: #28a745; 
             color: white; 
-            border: none; 
-            padding: 8px 15px; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-weight: bold;
-            display: none; /* Oculto por defecto */
+            display: none; /* Se activa por JS */
         }
 
-        .main { display: flex; flex: 1; overflow: hidden; }
-        textarea { width: 50%; background: #000; color: #0f0; font-family: 'Consolas', monospace; padding: 15px; border: none; outline: none; resize: none; }
-        iframe { width: 50%; background: white; border: none; }
-        button { padding: 8px 15px; cursor: pointer; border-radius: 4px; border: none; background: #007acc; color: white; }
+        .status-tag { 
+            margin-left: auto; 
+            font-size: 11px; 
+            color: #888; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+        }
+
+        /* Contenedor principal */
+        .main-container { 
+            display: flex; 
+            flex: 1; 
+            overflow: hidden; 
+        }
+
+        textarea { 
+            width: 50%; 
+            background: #1a1a1a; 
+            color: #9cdcfe; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+            padding: 20px; 
+            border: none; 
+            outline: none; 
+            resize: none; 
+            font-size: 16px;
+            border-right: 2px solid #333;
+        }
+
+        iframe { 
+            width: 50%; 
+            background: white; 
+            border: none; 
+        }
+
+        #file-input { display: none; }
     </style>
 </head>
 <body>
 
 <div class="toolbar">
-    <button onclick="exportar()">Guardar HTML</button>
-    <button id="btn-download-app" onclick="alert('Iniciando descarga de la App... (Error: Servidor no encontrado)')">
+    <button class="btn-blue" onclick="document.getElementById('file-input').click()">Importar</button>
+    <input type="file" id="file-input" accept=".html">
+    
+    <button class="btn-blue" onclick="exportarHTML()">Guardar HTML</button>
+    
+    <button id="btn-download-app" onclick="alert('Descargando instalador... (Simulación)')">
         Descargar App Desktop
     </button>
-    <span id="status" style="margin-left: auto; font-size: 12px; color: #888;"></span>
+    
+    <button class="btn-red" onclick="limpiar()">Limpiar</button>
+    
+    <span id="status" class="status-tag">Iniciando...</span>
 </div>
 
-<div class="main">
-    <textarea id="t" oninput="run()"></textarea>
-    <iframe id="v"></iframe>
+<div class="main-container">
+    <textarea id="codigo" placeholder="Escribe tu código HTML/CSS aquí..."></textarea>
+    <iframe id="preview"></iframe>
 </div>
 
 <script>
-    const area = document.getElementById('t');
-    const vista = document.getElementById('v');
+    const input = document.getElementById('codigo');
+    const preview = document.getElementById('preview');
     const btnApp = document.getElementById('btn-download-app');
-    const status = document.getElementById('status');
+    const statusText = document.getElementById('status');
 
-    // --- LÓGICA DE DETECCIÓN ---
+    // 1. Lógica de Detección de Modo App
     function detectarModo() {
-        // En un entorno real de App (como Electron), suele existir 'process' o el userAgent cambia
-        const esApp = window.process && window.process.type; 
-        
-        if (esApp) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const esModoApp = urlParams.get('mode') === 'app';
+
+        if (esModoApp) {
             btnApp.style.display = 'none';
-            status.innerText = "MODO APP ACTIVADO";
+            statusText.innerText = "MODO APP";
+            statusText.style.color = "#28a745";
         } else {
             btnApp.style.display = 'block';
-            status.innerText = "MODO WEB";
+            statusText.innerText = "MODO WEB";
         }
     }
 
-    function run() {
-        const doc = vista.contentDocument || vista.contentWindow.document;
+    // 2. Actualización en tiempo real
+    function update() {
+        const doc = preview.contentDocument || preview.contentWindow.document;
         doc.open();
-        doc.write(area.value);
+        doc.write(input.value);
         doc.close();
     }
 
-    function exportar() {
-        const blob = new Blob([area.value], {type: 'text/html'});
+    input.addEventListener('input', update);
+
+    // 3. Importar Archivo
+    document.getElementById('file-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            input.value = e.target.result;
+            update();
+        };
+        reader.readAsText(file);
+    });
+
+    // 4. Exportar / Guardar
+    function exportarHTML() {
+        const blob = new Blob([input.value], { type: 'text/html' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'codigo.html';
+        a.download = 'proyecto_experto.html';
         a.click();
     }
 
-    // Inicio
+    // 5. Limpiar
+    function limpiar() {
+        if(confirm("¿Seguro que quieres borrar todo el código?")) {
+            input.value = "";
+            update();
+        }
+    }
+
+    // Configuración Inicial
     window.onload = () => {
         detectarModo();
-        area.value = "<h1>Hola desde el Editor</h1><p>Escribe aquí...</p>";
-        run();
+        input.value = "<h1>¡Hola desde HTMLEDITOR Expert!</h1>\n<p>Empieza a crear tu web aquí.</p>";
+        update();
     };
 </script>
 
