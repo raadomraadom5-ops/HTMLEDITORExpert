@@ -28,16 +28,25 @@
             z-index: 10;
         }
 
-        button { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn-blue { background: #007acc; color: white; }
+        .btn-blue:hover { background: #005f9e; }
         .btn-red { background: #cc3300; color: white; }
-        #btn-download-app { background: #28a745; color: white; display: none; }
-        .status-tag { margin-left: auto; font-size: 11px; color: #888; }
+        .btn-red:hover { background: #a32900; }
+        
+        /* Botón de descarga verde */
+        #btn-download-app { 
+            background: #28a745; 
+            color: white; 
+            display: none; /* Se activa por JS si es modo Web */
+        }
+        #btn-download-app:hover { background: #218838; }
 
-        /* Estructura del Editor */
+        .status-tag { margin-left: auto; font-size: 11px; color: #888; font-weight: bold; }
+
+        /* Contenedor del Editor */
         .main-container { display: flex; flex: 1; overflow: hidden; }
 
-        /* Contenedor del Editor con Contador */
         .editor-wrapper { 
             display: flex; 
             width: 50%; 
@@ -46,18 +55,18 @@
             overflow: hidden;
         }
 
-        /* Columna de números */
         .line-numbers { 
-            width: 40px; 
+            width: 45px; 
             padding: 20px 5px; 
             text-align: right; 
             background: #1a1a1a; 
             color: #858585; 
             font-family: 'Consolas', monospace; 
             font-size: 16px; 
-            line-height: 1.5; /* Debe ser igual al del textarea */
+            line-height: 1.5; 
             user-select: none;
             overflow: hidden;
+            border-right: 1px solid #333;
         }
 
         textarea { 
@@ -76,6 +85,7 @@
         }
 
         iframe { width: 50%; background: white; border: none; }
+        #file-input { display: none; }
     </style>
 </head>
 <body>
@@ -83,16 +93,22 @@
 <div class="toolbar">
     <button class="btn-blue" onclick="document.getElementById('file-input').click()">Importar</button>
     <input type="file" id="file-input" accept=".html">
+    
     <button class="btn-blue" onclick="exportarHTML()">Guardar HTML</button>
-    <button id="btn-download-app" onclick="alert('Descargando...')">Descargar App</button>
+    
+    <button id="btn-download-app" onclick="descargarApp()">
+        Descargar App Desktop
+    </button>
+    
     <button class="btn-red" onclick="limpiar()">Limpiar</button>
-    <span id="status" class="status-tag">MODO WEB</span>
+    
+    <span id="status" class="status-tag">Cargando...</span>
 </div>
 
 <div class="main-container">
     <div class="editor-wrapper">
         <div id="line-numbers" class="line-numbers">1</div>
-        <textarea id="codigo" spellcheck="false" placeholder="Escribe aquí..."></textarea>
+        <textarea id="codigo" spellcheck="false" placeholder="Escribe tu HTML aquí..."></textarea>
     </div>
     <iframe id="preview"></iframe>
 </div>
@@ -102,18 +118,22 @@
     const preview = document.getElementById('preview');
     const lineNumbers = document.getElementById('line-numbers');
     const btnApp = document.getElementById('btn-download-app');
+    const statusText = document.getElementById('status');
 
-    // 1. Detección de Modo App
+    // 1. Detección de Modo App (vía URL ?mode=app)
     function detectarModo() {
-        if (new URLSearchParams(window.location.search).get('mode') === 'app') {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('mode') === 'app') {
             btnApp.style.display = 'none';
-            document.getElementById('status').innerText = "MODO APP";
+            statusText.innerText = "MODO APP";
+            statusText.style.color = "#28a745";
         } else {
             btnApp.style.display = 'block';
+            statusText.innerText = "MODO WEB";
         }
     }
 
-    // 2. Lógica del Contador de Líneas
+    // 2. Contador de Líneas
     function updateLineNumbers() {
         const lines = input.value.split('\n').length;
         let lineNumbersHTML = '';
@@ -123,7 +143,7 @@
         lineNumbers.innerHTML = lineNumbersHTML;
     }
 
-    // Sincronizar scroll entre el contador y el textarea
+    // Sincronizar scroll
     input.addEventListener('scroll', () => {
         lineNumbers.scrollTop = input.scrollTop;
     });
@@ -134,22 +154,40 @@
         doc.open();
         doc.write(input.value);
         doc.close();
-        updateLineNumbers(); // Actualiza números al escribir
+        updateLineNumbers();
     }
 
     input.addEventListener('input', update);
 
-    // 4. Funciones de Archivo
+    // 4. Función de descarga del archivo que subiste
+    function descargarApp() {
+        const link = document.createElement('a');
+        link.href = "HTMLEditorExpert.exe"; // Asegúrate de subir el .exe a la misma carpeta en GitHub
+        link.download = "HTMLEditorExpert.exe";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // 5. Importar / Exportar / Limpiar
+    document.getElementById('file-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => { input.value = e.target.result; update(); };
+        reader.readAsText(file);
+    });
+
     function exportarHTML() {
         const blob = new Blob([input.value], { type: 'text/html' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'proyecto.html';
+        a.download = 'mi_proyecto.html';
         a.click();
     }
 
     function limpiar() {
-        if(confirm("¿Borrar todo?")) {
+        if(confirm("¿Seguro que quieres borrar todo el código?")) {
             input.value = "";
             update();
         }
@@ -158,7 +196,7 @@
     // Inicio
     window.onload = () => {
         detectarModo();
-        input.value = "<h1>HTMLEDITOR Expert</h1>\n<p>Línea 2\nLínea 3</p>";
+        input.value = "<h1>Bienvenido a HTMLEDITOR Expert</h1>\n<p>Escribe aquí tu código...</p>";
         update();
     };
 </script>
