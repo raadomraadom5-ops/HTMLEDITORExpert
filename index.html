@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Editor Pro - Auto Detect</title>
+    <style>
+        body { margin: 0; display: flex; flex-direction: column; height: 100vh; background: #1e1e1e; font-family: sans-serif; color: white; }
+        .toolbar { background: #2d2d2d; padding: 10px; display: flex; gap: 10px; align-items: center; border-bottom: 2px solid #444; }
+        
+        /* Estilo del botón de descarga especial */
+        #btn-download-app { 
+            background: #28a745; 
+            color: white; 
+            border: none; 
+            padding: 8px 15px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold;
+            display: none; /* Oculto por defecto */
+        }
+
+        .main { display: flex; flex: 1; overflow: hidden; }
+        textarea { width: 50%; background: #000; color: #0f0; font-family: 'Consolas', monospace; padding: 15px; border: none; outline: none; resize: none; }
+        iframe { width: 50%; background: white; border: none; }
+        button { padding: 8px 15px; cursor: pointer; border-radius: 4px; border: none; background: #007acc; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="toolbar">
+    <button onclick="exportar()">Guardar HTML</button>
+    <button id="btn-download-app" onclick="alert('Iniciando descarga de la App... (Error: Servidor no encontrado)')">
+        Descargar App Desktop
+    </button>
+    <span id="status" style="margin-left: auto; font-size: 12px; color: #888;"></span>
+</div>
+
+<div class="main">
+    <textarea id="t" oninput="run()"></textarea>
+    <iframe id="v"></iframe>
+</div>
+
+<script>
+    const area = document.getElementById('t');
+    const vista = document.getElementById('v');
+    const btnApp = document.getElementById('btn-download-app');
+    const status = document.getElementById('status');
+
+    // --- LÓGICA DE DETECCIÓN ---
+    function detectarModo() {
+        // En un entorno real de App (como Electron), suele existir 'process' o el userAgent cambia
+        const esApp = window.process && window.process.type; 
+        
+        if (esApp) {
+            btnApp.style.display = 'none';
+            status.innerText = "MODO APP ACTIVADO";
+        } else {
+            btnApp.style.display = 'block';
+            status.innerText = "MODO WEB";
+        }
+    }
+
+    function run() {
+        const doc = vista.contentDocument || vista.contentWindow.document;
+        doc.open();
+        doc.write(area.value);
+        doc.close();
+    }
+
+    function exportar() {
+        const blob = new Blob([area.value], {type: 'text/html'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'codigo.html';
+        a.click();
+    }
+
+    // Inicio
+    window.onload = () => {
+        detectarModo();
+        area.value = "<h1>Hola desde el Editor</h1><p>Escribe aquí...</p>";
+        run();
+    };
+</script>
+
+</body>
+</html>
