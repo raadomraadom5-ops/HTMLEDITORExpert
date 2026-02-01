@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTMLEDITOR Expert</title>
+    <title>HTMLEDITOR Expert - Line Counter</title>
     <style>
         * { box-sizing: border-box; }
         body { 
@@ -13,7 +13,7 @@
             height: 100vh; 
             background: #1e1e1e; 
             color: white; 
-            font-family: 'Segoe UI', Tahoma, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             overflow: hidden;
         }
 
@@ -25,63 +25,57 @@
             gap: 10px; 
             align-items: center; 
             border-bottom: 2px solid #444; 
+            z-index: 10;
         }
 
-        button { 
-            padding: 8px 15px; 
-            border: none; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            transition: 0.2s;
-        }
-
+        button { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn-blue { background: #007acc; color: white; }
-        .btn-blue:hover { background: #005f9e; }
         .btn-red { background: #cc3300; color: white; }
-        .btn-red:hover { background: #a32900; }
-        
-        #btn-download-app { 
-            background: #28a745; 
-            color: white; 
-            display: none; /* Se activa por JS */
-        }
+        #btn-download-app { background: #28a745; color: white; display: none; }
+        .status-tag { margin-left: auto; font-size: 11px; color: #888; }
 
-        .status-tag { 
-            margin-left: auto; 
-            font-size: 11px; 
-            color: #888; 
-            text-transform: uppercase; 
-            letter-spacing: 1px;
-        }
+        /* Estructura del Editor */
+        .main-container { display: flex; flex: 1; overflow: hidden; }
 
-        /* Contenedor principal */
-        .main-container { 
+        /* Contenedor del Editor con Contador */
+        .editor-wrapper { 
             display: flex; 
-            flex: 1; 
-            overflow: hidden; 
+            width: 50%; 
+            background: #1a1a1a; 
+            border-right: 2px solid #333;
+            overflow: hidden;
+        }
+
+        /* Columna de números */
+        .line-numbers { 
+            width: 40px; 
+            padding: 20px 5px; 
+            text-align: right; 
+            background: #1a1a1a; 
+            color: #858585; 
+            font-family: 'Consolas', monospace; 
+            font-size: 16px; 
+            line-height: 1.5; /* Debe ser igual al del textarea */
+            user-select: none;
+            overflow: hidden;
         }
 
         textarea { 
-            width: 50%; 
-            background: #1a1a1a; 
+            flex: 1;
+            background: transparent; 
             color: #9cdcfe; 
-            font-family: 'Consolas', 'Monaco', monospace; 
-            padding: 20px; 
+            font-family: 'Consolas', monospace; 
+            padding: 20px 10px; 
             border: none; 
             outline: none; 
             resize: none; 
             font-size: 16px;
-            border-right: 2px solid #333;
+            line-height: 1.5;
+            white-space: pre;
+            overflow-x: auto;
         }
 
-        iframe { 
-            width: 50%; 
-            background: white; 
-            border: none; 
-        }
-
-        #file-input { display: none; }
+        iframe { width: 50%; background: white; border: none; }
     </style>
 </head>
 <body>
@@ -89,87 +83,82 @@
 <div class="toolbar">
     <button class="btn-blue" onclick="document.getElementById('file-input').click()">Importar</button>
     <input type="file" id="file-input" accept=".html">
-    
     <button class="btn-blue" onclick="exportarHTML()">Guardar HTML</button>
-    
-    <button id="btn-download-app" onclick="alert('Descargando instalador... (Simulación)')">
-        Descargar App Desktop
-    </button>
-    
+    <button id="btn-download-app" onclick="alert('Descargando...')">Descargar App</button>
     <button class="btn-red" onclick="limpiar()">Limpiar</button>
-    
-    <span id="status" class="status-tag">Iniciando...</span>
+    <span id="status" class="status-tag">MODO WEB</span>
 </div>
 
 <div class="main-container">
-    <textarea id="codigo" placeholder="Escribe tu código HTML/CSS aquí..."></textarea>
+    <div class="editor-wrapper">
+        <div id="line-numbers" class="line-numbers">1</div>
+        <textarea id="codigo" spellcheck="false" placeholder="Escribe aquí..."></textarea>
+    </div>
     <iframe id="preview"></iframe>
 </div>
 
 <script>
     const input = document.getElementById('codigo');
     const preview = document.getElementById('preview');
+    const lineNumbers = document.getElementById('line-numbers');
     const btnApp = document.getElementById('btn-download-app');
-    const statusText = document.getElementById('status');
 
-    // 1. Lógica de Detección de Modo App
+    // 1. Detección de Modo App
     function detectarModo() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const esModoApp = urlParams.get('mode') === 'app';
-
-        if (esModoApp) {
+        if (new URLSearchParams(window.location.search).get('mode') === 'app') {
             btnApp.style.display = 'none';
-            statusText.innerText = "MODO APP";
-            statusText.style.color = "#28a745";
+            document.getElementById('status').innerText = "MODO APP";
         } else {
             btnApp.style.display = 'block';
-            statusText.innerText = "MODO WEB";
         }
     }
 
-    // 2. Actualización en tiempo real
+    // 2. Lógica del Contador de Líneas
+    function updateLineNumbers() {
+        const lines = input.value.split('\n').length;
+        let lineNumbersHTML = '';
+        for (let i = 1; i <= lines; i++) {
+            lineNumbersHTML += i + '<br>';
+        }
+        lineNumbers.innerHTML = lineNumbersHTML;
+    }
+
+    // Sincronizar scroll entre el contador y el textarea
+    input.addEventListener('scroll', () => {
+        lineNumbers.scrollTop = input.scrollTop;
+    });
+
+    // 3. Actualización de Vista Previa
     function update() {
         const doc = preview.contentDocument || preview.contentWindow.document;
         doc.open();
         doc.write(input.value);
         doc.close();
+        updateLineNumbers(); // Actualiza números al escribir
     }
 
     input.addEventListener('input', update);
 
-    // 3. Importar Archivo
-    document.getElementById('file-input').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            input.value = e.target.result;
-            update();
-        };
-        reader.readAsText(file);
-    });
-
-    // 4. Exportar / Guardar
+    // 4. Funciones de Archivo
     function exportarHTML() {
         const blob = new Blob([input.value], { type: 'text/html' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'proyecto_experto.html';
+        a.download = 'proyecto.html';
         a.click();
     }
 
-    // 5. Limpiar
     function limpiar() {
-        if(confirm("¿Seguro que quieres borrar todo el código?")) {
+        if(confirm("¿Borrar todo?")) {
             input.value = "";
             update();
         }
     }
 
-    // Configuración Inicial
+    // Inicio
     window.onload = () => {
         detectarModo();
-        input.value = "<h1>¡Hola desde HTMLEDITOR Expert!</h1>\n<p>Empieza a crear tu web aquí.</p>";
+        input.value = "<h1>HTMLEDITOR Expert</h1>\n<p>Línea 2\nLínea 3</p>";
         update();
     };
 </script>
