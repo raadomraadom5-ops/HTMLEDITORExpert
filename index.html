@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTMLEDITOR Expert</title>
+    <title>HTMLEDITOR Expert - Professional Edition</title>
     <style>
+        /* Estilos Globales */
         * { box-sizing: border-box; }
         body { 
             margin: 0; 
@@ -12,192 +13,222 @@
             flex-direction: column; 
             height: 100vh; 
             background: #1e1e1e; 
-            color: white; 
-            font-family: 'Segoe UI', sans-serif;
+            color: #d4d4d4; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
         }
 
-        /* Barra de herramientas */
+        /* Barra de Herramientas Superior */
         .toolbar { 
             background: #2d2d2d; 
-            padding: 10px 15px; 
+            padding: 8px 15px; 
             display: flex; 
-            gap: 10px; 
+            gap: 12px; 
             align-items: center; 
-            border-bottom: 2px solid #444; 
-            z-index: 10;
+            border-bottom: 1px solid #444; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            z-index: 100;
         }
 
-        button { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button { 
+            padding: 7px 14px; 
+            border: none; 
+            border-radius: 3px; 
+            cursor: pointer; 
+            font-size: 13px;
+            font-weight: 600; 
+            transition: all 0.2s ease;
+        }
+
         .btn-blue { background: #007acc; color: white; }
         .btn-blue:hover { background: #005f9e; }
-        .btn-red { background: #cc3300; color: white; }
-        .btn-red:hover { background: #a32900; }
+        .btn-red { background: #a33333; color: white; }
+        .btn-red:hover { background: #822929; }
         
-        /* Botón de descarga verde */
+        /* Botón de Descarga Dinámico */
         #btn-download-app { 
             background: #28a745; 
             color: white; 
-            display: none; /* Se activa por JS si es modo Web */
+            display: none; /* Controlado por JS */
         }
-        #btn-download-app:hover { background: #218838; }
+        #btn-download-app:hover { background: #218838; transform: translateY(-1px); }
 
-        .status-tag { margin-left: auto; font-size: 11px; color: #888; font-weight: bold; }
+        .status-badge { 
+            margin-left: auto; 
+            font-size: 10px; 
+            padding: 3px 8px;
+            border-radius: 10px;
+            background: #3c3c3c;
+            color: #aaa;
+            text-transform: uppercase;
+        }
 
         /* Contenedor del Editor */
-        .main-container { display: flex; flex: 1; overflow: hidden; }
+        .main-content { display: flex; flex: 1; overflow: hidden; }
 
-        .editor-wrapper { 
+        .editor-container { 
             display: flex; 
             width: 50%; 
-            background: #1a1a1a; 
-            border-right: 2px solid #333;
-            overflow: hidden;
+            background: #1e1e1e; 
+            border-right: 1px solid #333;
+            position: relative;
         }
 
+        /* Contador de Líneas */
         .line-numbers { 
             width: 45px; 
-            padding: 20px 5px; 
-            text-align: right; 
-            background: #1a1a1a; 
+            padding: 20px 0; 
+            text-align: center; 
+            background: #1e1e1e; 
             color: #858585; 
-            font-family: 'Consolas', monospace; 
-            font-size: 16px; 
-            line-height: 1.5; 
+            font-family: 'Consolas', 'Courier New', monospace; 
+            font-size: 14px; 
+            line-height: 21px; /* Debe coincidir con el textarea */
             user-select: none;
+            border-right: 1px solid #2d2d2d;
             overflow: hidden;
-            border-right: 1px solid #333;
         }
 
         textarea { 
             flex: 1;
             background: transparent; 
             color: #9cdcfe; 
-            font-family: 'Consolas', monospace; 
+            font-family: 'Consolas', 'Courier New', monospace; 
             padding: 20px 10px; 
             border: none; 
             outline: none; 
             resize: none; 
-            font-size: 16px;
-            line-height: 1.5;
+            font-size: 14px;
+            line-height: 21px;
             white-space: pre;
             overflow-x: auto;
+            tab-size: 4;
         }
 
-        iframe { width: 50%; background: white; border: none; }
+        /* Vista Previa */
+        #preview-frame { 
+            width: 50%; 
+            background: white; 
+            border: none; 
+        }
+
         #file-input { display: none; }
     </style>
 </head>
 <body>
 
 <div class="toolbar">
-    <button class="btn-blue" onclick="document.getElementById('file-input').click()">Importar</button>
+    <button class="btn-blue" onclick="document.getElementById('file-input').click()">📁 Importar</button>
     <input type="file" id="file-input" accept=".html">
     
-    <button class="btn-blue" onclick="exportarHTML()">Guardar HTML</button>
+    <button class="btn-blue" onclick="exportarHTML()">💾 Guardar Archivo</button>
     
     <button id="btn-download-app" onclick="descargarApp()">
-        Descargar App Desktop
+        🚀 Instalar App Desktop
     </button>
     
-    <button class="btn-red" onclick="limpiar()">Limpiar</button>
+    <button class="btn-red" onclick="limpiarEditor()">🗑️ Limpiar</button>
     
-    <span id="status" class="status-tag">Cargando...</span>
+    <div id="status" class="status-badge">Detectando Entorno...</div>
 </div>
 
-<div class="main-container">
-    <div class="editor-wrapper">
+<div class="main-content">
+    <div class="editor-container">
         <div id="line-numbers" class="line-numbers">1</div>
-        <textarea id="codigo" spellcheck="false" placeholder="Escribe tu HTML aquí..."></textarea>
+        <textarea id="editor-input" spellcheck="false" placeholder=""></textarea>
     </div>
-    <iframe id="preview"></iframe>
+    <iframe id="preview-frame"></iframe>
 </div>
 
 <script>
-    const input = document.getElementById('codigo');
-    const preview = document.getElementById('preview');
-    const lineNumbers = document.getElementById('line-numbers');
+    const editor = document.getElementById('editor-input');
+    const preview = document.getElementById('preview-frame');
+    const lines = document.getElementById('line-numbers');
     const btnApp = document.getElementById('btn-download-app');
-    const statusText = document.getElementById('status');
+    const status = document.getElementById('status');
 
-    // 1. Detección de Modo App (vía URL ?mode=app)
-    function detectarModo() {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('mode') === 'app') {
+    // 1. Detección de Modo App mediante URL
+    function inicializarEntorno() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('mode') === 'app') {
             btnApp.style.display = 'none';
-            statusText.innerText = "MODO APP";
-            statusText.style.color = "#28a745";
+            status.innerText = "Modo: Aplicación Desktop";
+            status.style.color = "#4ec9b0";
         } else {
             btnApp.style.display = 'block';
-            statusText.innerText = "MODO WEB";
+            status.innerText = "Modo: Web";
         }
     }
 
-    // 2. Contador de Líneas
-    function updateLineNumbers() {
-        const lines = input.value.split('\n').length;
-        let lineNumbersHTML = '';
-        for (let i = 1; i <= lines; i++) {
-            lineNumbersHTML += i + '<br>';
-        }
-        lineNumbers.innerHTML = lineNumbersHTML;
-    }
-
-    // Sincronizar scroll
-    input.addEventListener('scroll', () => {
-        lineNumbers.scrollTop = input.scrollTop;
-    });
-
-    // 3. Actualización de Vista Previa
-    function update() {
+    // 2. Lógica del Contador de Líneas y Renderizado
+    function render() {
+        // Actualizar vista previa
         const doc = preview.contentDocument || preview.contentWindow.document;
         doc.open();
-        doc.write(input.value);
+        doc.write(editor.value);
         doc.close();
-        updateLineNumbers();
+
+        // Actualizar números de línea
+        const lineCount = editor.value.split('\n').length;
+        let lineHTML = '';
+        for (let i = 1; i <= lineCount; i++) {
+            lineHTML += i + '<br>';
+        }
+        lines.innerHTML = lineHTML;
     }
 
-    input.addEventListener('input', update);
+    // Sincronización de Scroll
+    editor.addEventListener('scroll', () => {
+        lines.scrollTop = editor.scrollTop;
+    });
 
-    // 4. Función de descarga del archivo que subiste
+    editor.addEventListener('input', render);
+
+    // 3. Función de Descarga del .exe
     function descargarApp() {
+        // Se asume que el .exe está en la misma raíz que el index.html
         const link = document.createElement('a');
-        link.href = "HTMLEditorExpert.exe"; // Asegúrate de subir el .exe a la misma carpeta en GitHub
+        link.href = "HTMLEditorExpert.exe"; 
         link.download = "HTMLEditorExpert.exe";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     }
 
-    // 5. Importar / Exportar / Limpiar
+    // 4. Gestión de Archivos
     document.getElementById('file-input').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (e) => { input.value = e.target.result; update(); };
+        reader.onload = (e) => {
+            editor.value = e.target.result;
+            render();
+        };
         reader.readAsText(file);
     });
 
     function exportarHTML() {
-        const blob = new Blob([input.value], { type: 'text/html' });
+        const blob = new Blob([editor.value], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'mi_proyecto.html';
+        a.href = url;
+        a.download = 'mi_codigo_experto.html';
         a.click();
+        URL.revokeObjectURL(url);
     }
 
-    function limpiar() {
-        if(confirm("¿Seguro que quieres borrar todo el código?")) {
-            input.value = "";
-            update();
+    function limpiarEditor() {
+        if(confirm("¿Estás seguro de que deseas borrar todo el código actual?")) {
+            editor.value = "";
+            render();
         }
     }
 
-    // Inicio
+    // Carga Inicial
     window.onload = () => {
-        detectarModo();
-        input.value = "<h1>Bienvenido a HTMLEDITOR Expert</h1>\n<p>Escribe aquí tu código...</p>";
-        update();
+        inicializarEntorno();
+        editor.value = "\n<h1 style='color: #007acc; font-family: sans-serif;'>¡Listo para programar!</h1>\n<p>Prueba el contador de líneas a la izquierda.</p>";
+        render();
     };
 </script>
 
